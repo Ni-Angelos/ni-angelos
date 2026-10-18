@@ -8,18 +8,25 @@
   input,button{font-size:16px;padding:10px;margin:4px 0;border-radius:8px;border:1px solid #bbb;box-sizing:border-box}
   input{width:100%} button{background:#1f4e78;color:#fff;border:0;width:100%}
   button.sec{background:#fff;color:#1f4e78;border:1px solid #1f4e78}
+  button:disabled{opacity:.6}
   #reader{width:100%;max-width:420px;margin:8px auto}
   #out,#lmsg{margin:10px 0;padding:14px;border-radius:10px;font-size:18px;display:none;text-align:center}
-  .ok{background:#c6efce;color:#1e5a1e}.dup{background:#ffeb9c;color:#7f6000}.bad{background:#ffc7ce;color:#9c0006}
+  .ok{background:#c6efce;color:#1e5a1e}.dup{background:#ffeb9c;color:#7f6000}.bad{background:#ffc7ce;color:#9c0006}.info{background:#e3effa;color:#1f4e78}
   .p{background:#fff;padding:10px;margin:4px 0;border-radius:8px;border:1px solid #ddd}
   #who{font-size:14px;color:#555;margin-bottom:6px}
 </style></head><body>
+<script>
+  window.onerror = function (m, s, l) {
+    document.body.insertAdjacentHTML('afterbegin',
+      '<div style="background:#fcc;color:#900;padding:10px;margin:6px 0;font-size:14px;direction:ltr">JS error: ' + m + ' (line ' + l + ')</div>');
+  };
+</script>
 <div id="login">
   <h2>تسجيل الدخول</h2>
   <input id="u" placeholder="الاسم" autocomplete="username">
   <input id="pw" type="password" placeholder="كلمة السر" autocomplete="current-password">
   <button id="in">دخول</button>
-  <div id="lmsg" class="bad"></div>
+  <div id="lmsg"></div>
 </div>
 <div id="app" style="display:none">
   <h2>تسجيل الحضور</h2>
@@ -44,7 +51,29 @@
   var out = document.getElementById('out'), lastTok = '', lastAt = 0, cam = null;
 
   function call(payload) {
-    return fetch(API, { method: 'POST', body: JSON.stringify(payload) }).then(function (r) { return r.json(); });
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 25000);
+    return fetch(API, { method: 'POST', body: JSON.stringify(payload), signal: ctrl.signal })
+      .then(function (r) { clearTimeout(timer); return r.text(); })
+      .then(function (t) {
+        try { return JSON.parse(t); }
+        catch (e) {
+          var hint = /<html|<!doctype/i.test(t)
+            ? 'السيرفر رجّع صفحة بدل بيانات. غالبًا النشر مش مفتوح للكل (Anyone) أو مفيش New version'
+            : t.slice(0, 120);
+          throw new Error(hint);
+        }
+      })
+      .catch(function (e) {
+        clearTimeout(timer);
+        if (e && e.name === 'AbortError') throw new Error('السيرفر اتأخر أكتر من 25 ثانية، جرّب تاني');
+        throw e;
+      });
+  }
+  function lmsg(text, cls) {
+    var m = document.getElementById('lmsg');
+    if (!text) { m.style.display = 'none'; return; }
+    m.className = cls || 'bad'; m.textContent = text; m.style.display = 'block';
   }
   function showApp() {
     document.getElementById('login').style.display = 'none';
@@ -55,8 +84,7 @@
     localStorage.removeItem('tok'); localStorage.removeItem('user'); TOK = ''; USER = '';
     document.getElementById('app').style.display = 'none';
     document.getElementById('login').style.display = 'block';
-    var m = document.getElementById('lmsg');
-    if (msg) { m.textContent = msg; m.style.display = 'block'; } else m.style.display = 'none';
+    lmsg(msg, 'bad');
   }
   function show(r) {
     if (r.auth === false) return showLogin(r.msg);
@@ -68,14 +96,22 @@
   if (TOK) showApp();
 
   document.getElementById('in').onclick = function () {
-    call({ action: 'login', name: document.getElementById('u').value, password: document.getElementById('pw').value })
+    var btn = this, name = document.getElementById('u').value, pw = document.getElementById('pw').value;
+    if (!name || !pw) { lmsg('اكتب الاسم وكلمة السر', 'bad'); return; }
+    btn.disabled = true; lmsg('جاري الدخول…', 'info');
+    call({ action: 'login', name: name, password: pw })
       .then(function (r) {
-        if (!r.ok) return showLogin(r.msg);
+        btn.disabled = false;
+        if (!r.ok) return lmsg(r.msg || 'الدخول فشل', 'bad');
         TOK = r.token; USER = r.user;
         localStorage.setItem('tok', TOK); localStorage.setItem('user', USER);
         document.getElementById('pw').value = '';
+        lmsg('');
         showApp();
-      }).catch(function (e) { showLogin('حصل خطأ في الاتصال: ' + e.message); });
+      }).catch(function (e) {
+        btn.disabled = false;
+        lmsg('حصل خطأ في الاتصال: ' + e.message, 'bad');
+      });
   };
   document.getElementById('logout').onclick = function () { showLogin(''); };
 
@@ -128,10 +164,5 @@
       }).catch(fail);
     }, 350);
   };
-</script></body></html>
-<script>
-  window.onerror = function (m, s, l) {
-    document.body.insertAdjacentHTML('afterbegin',
-      '<div style="background:#fcc;color:#900;padding:10px;margin:6px 0;font-size:14px;direction:ltr">JS error: ' + m + ' (line ' + l + ')</div>');
-  };
 </script>
+</body></html>
