@@ -1,184 +1,131 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!https://script.google.com/macros/s/AKfycbyxbwv4gNMDrgtaN4Vu2e7AQkPhNnb9X8TYRzN-cv2z9KO2LtcWoibaumNrUd9OIfhM/exec>
+<html dir="rtl" lang="ar"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>تسجيل الحضور</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;800&display=swap">
 <style>
-:root{--ink:#14222e;--paper:#f2f5f8;--blue:#1f4e78;--ok:#1f7a4d;--warn:#b7791f;--bad:#b4332f;--line:#d5dde5}
-*{box-sizing:border-box}
-body{margin:0;font-family:Cairo,system-ui,sans-serif;background:var(--paper);color:var(--ink);padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-[hidden]{display:none!important}
-main{max-width:480px;margin:0 auto;padding:16px}
-h1{font-size:26px;margin:40px 0 16px;color:var(--blue)}
-input,button{font:inherit;font-size:18px;border-radius:10px;border:1px solid var(--line);padding:12px 14px;width:100%}
-button{background:var(--blue);color:#fff;border:0;font-weight:800;margin-top:10px}
-header{display:flex;justify-content:space-between;align-items:baseline;font-weight:800}
-header span{color:var(--blue);font-size:22px}
-.cam{position:relative;margin:12px 0;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:1}
-video{width:100%;height:100%;object-fit:cover}
-.cam i{position:absolute;inset:18%;border:3px solid #fff;border-radius:14px;opacity:.85}
-#res{min-height:92px;border-radius:16px;padding:16px;background:#fff;border:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;transition:background .15s}
-#res b{font-size:28px;line-height:1.3}
-#res.ok{background:var(--ok);color:#fff;border-color:var(--ok)}
-#res.dup{background:var(--warn);color:#fff;border-color:var(--warn)}
-#res.bad{background:var(--bad);color:#fff;border-color:var(--bad)}
-details{margin-top:14px}
-summary{font-weight:800;padding:10px 0;cursor:pointer}
-#list button{background:#fff;color:var(--ink);border:1px solid var(--line);text-align:start;font-weight:500}
-ul{list-style:none;padding:0;margin:14px 0;color:#4a5b6b}
-li{padding:6px 0;border-bottom:1px solid var(--line)}
-#err{color:var(--bad);min-height:24px}
-</style>
-</head>
-<body>
-<main>
-  <section id="login">
-    <h1>تسجيل الحضور</h1>
-    <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="الرقم السري">
-    <button id="go">دخول</button>
-    <p id="err"></p>
-    <p id="ver" style="color:#6b7b8a;font-size:13px"></p>
-  </section>
-
-  <section id="app" hidden>
-    <header><div id="who"></div><span id="cnt">0</span></header>
-    <div class="cam"><video id="v" playsinline muted></video><i></i><button id="camBtn" style="position:absolute;z-index:2;inset:auto 16px 16px;width:auto">سجل</button></div>
-    <div id="res">اضغط "سجل" وبعدها وجّه الكاميرا على الـ QR</div>
-    <details>
-      <summary>تسجيل يدوي (الموبايل فصل شحنه)</summary>
-      <input id="q" placeholder="اكتب الاسم أو الكود" autocomplete="off">
-      <div id="list"></div>
-    </details>
-    <ul id="log"></ul>
-  </section>
-  <canvas id="c" hidden></canvas>
-</main>
-
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  body{font-family:Arial,sans-serif;margin:0;padding:14px;background:#f4f6f8}
+  h2{margin:0 0 10px}
+  input,button{font-size:16px;padding:10px;margin:4px 0;border-radius:8px;border:1px solid #bbb;box-sizing:border-box}
+  input{width:100%} button{background:#1f4e78;color:#fff;border:0;width:100%}
+  button.sec{background:#fff;color:#1f4e78;border:1px solid #1f4e78}
+  #reader{width:100%;max-width:420px;margin:8px auto}
+  #out,#lmsg{margin:10px 0;padding:14px;border-radius:10px;font-size:18px;display:none;text-align:center}
+  .ok{background:#c6efce;color:#1e5a1e}.dup{background:#ffeb9c;color:#7f6000}.bad{background:#ffc7ce;color:#9c0006}
+  .p{background:#fff;padding:10px;margin:4px 0;border-radius:8px;border:1px solid #ddd}
+  #who{font-size:14px;color:#555;margin-bottom:6px}
+</style></head><body>
+<div id="login">
+  <h2>تسجيل الدخول</h2>
+  <input id="u" placeholder="الاسم" autocomplete="username">
+  <input id="pw" type="password" placeholder="كلمة السر" autocomplete="current-password">
+  <button id="in">دخول</button>
+  <div id="lmsg" class="bad"></div>
+</div>
+<div id="app" style="display:none">
+  <h2>تسجيل الحضور</h2>
+  <div id="who"></div>
+  <button id="start">تشغيل الكاميرا</button>
+  <div id="reader"></div>
+  <div id="out"></div>
+  <button id="shot" class="sec">📷 أو صوّر الـ QR</button>
+  <input id="file" type="file" accept="image/*" capture="environment" style="display:none">
+  <hr>
+  <input id="code" type="number" placeholder="أو اكتب الكود">
+  <button id="go">تسجيل بالكود</button>
+  <input id="q" placeholder="أو ابحث بالاسم أو الرقم">
+  <div id="results"></div>
+  <button id="logout" class="sec">تسجيل خروج</button>
+</div>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-const API = 'https://script.google.com/macros/s/AKfycby0uVmugXRFNJ_VGyV_JFiuD17gqlVbafzZm8l0GNgQWaRa-OISu2sAE9BgthAtn_kjHg/exec'; // رابط الـ Web app من Apps Script
-const $ = id => document.getElementById(id);
-const store = {
-  get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } },
-  set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }
-};
-$('ver').textContent = 'إصدار 7 - ' + API.slice(0, 48);
-let pin = location.hash.slice(1) || store.get('pin'), started = false, busy = false, last = '', lastAt = 0;
+  var API = 'الصق هنا رابط الـ Web app الذي ينتهي بـ /exec';
 
-async function call(body) {
-  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ pin, ...body }) });
-  const t = await r.text();
-  try { return JSON.parse(t); }
-  catch (e) { throw new Error('HTTP ' + r.status + ' - ' + t.replace(/\s+/g, ' ').slice(0, 70)); }
-}
+  var TOK = localStorage.getItem('tok') || '', USER = localStorage.getItem('user') || '';
+  var out = document.getElementById('out'), lastTok = '', lastAt = 0, cam = null;
 
-async function login() {
-  $('err').textContent = '';
-  pin = $('pin').value.trim() || pin;
-  try {
-    const d = await call({ action: 'auth' });
-    if (!d.ok) { $('err').textContent = d.msg; return; }
-    store.set('pin', pin); history.replaceState(null, '', '#' + pin);
-    $('who').textContent = d.servant; $('cnt').textContent = d.count;
-    $('login').hidden = true; $('app').hidden = false;
-  } catch (e) { $('err').textContent = API.includes('PASTE') ? 'رابط Apps Script لسه مش متحط في index.html' : 'تعذّر الاتصال: ' + e.message; }
-}
-$('go').onclick = login;
-$('pin').onkeydown = e => { if (e.key === 'Enter') login(); };
-if (pin) login();
-
-function show(d) {
-  const r = $('res');
-  if (d.ok && !d.dup) { r.className = 'ok'; r.innerHTML = '<b>' + d.name + '</b>تم التسجيل'; $('cnt').textContent = d.count; add(d.name); beep(1); }
-  else if (d.ok) { r.className = 'dup'; r.innerHTML = '<b>' + d.name + '</b>مسجل قبل كده النهارده'; beep(2); }
-  else { r.className = 'bad'; r.innerHTML = '<b>' + d.msg + '</b>'; beep(2); }
-}
-function add(n) {
-  const li = document.createElement('li');
-  li.textContent = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) + '  ' + n;
-  $('log').prepend(li);
-  while ($('log').children.length > 6) $('log').lastChild.remove();
-}
-function beep(n) { if (navigator.vibrate) navigator.vibrate(n === 1 ? 80 : [100, 60, 100]); }
-
-async function send(body) {
-  busy = true;
-  $('res').className = ''; $('res').textContent = 'جاري التسجيل...';
-  try { show(await call(body)); }
-  catch (e) { show({ ok: false, msg: 'تعذّر الاتصال: ' + e.message }); }
-  busy = false; stopCam();
-}
-function stopCam() {
-  started = false;
-  const v = $('v');
-  if (v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
-  v.srcObject = null;
-  $('camBtn').hidden = false;
-}
-
-const bd = 'BarcodeDetector' in window ? new BarcodeDetector({ formats: ['qr_code'] }) : null;
-$('camBtn').onclick = start;
-async function start() {
-  if (started) return;
-  last = '';
-  const btn = $('camBtn'), r = $('res');
-  btn.hidden = true;
-  const hang = setTimeout(() => {
-    r.className = 'bad'; r.innerHTML = '<b>مفيش رد من الكاميرا</b>افتح الرابط في Chrome أو Safari مباشرة (مش من جوه واتساب أو ماسنجر)'; btn.hidden = false;
-  }, 8000);
-  try {
-    const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-    clearTimeout(hang); started = true; r.className = ''; r.textContent = 'وجّه الكاميرا على الـ QR';
-    $('v').srcObject = s; await $('v').play(); tick(++loop);
-  } catch (e) {
-    clearTimeout(hang); btn.hidden = false;
-    r.className = 'bad'; r.innerHTML = '<b>الكاميرا مش شغالة</b>اضغط "سجل" واسمح بالوصول من إعدادات المتصفح';
+  function call(payload) {
+    return fetch(API, { method: 'POST', body: JSON.stringify(payload) }).then(function (r) { return r.json(); });
   }
-}
-let loop = 0;
-async function tick(id) {
-  if (!started || id !== loop) return;
-  const v = $('v');
-  if (v.readyState === 4 && !busy) {
-    let t = '';
-    try {
-      if (bd) { const r = await bd.detect(v); t = r.length ? r[0].rawValue : ''; }
-      else {
-        const c = $('c'), k = Math.min(1, 640 / v.videoWidth);
-        c.width = v.videoWidth * k; c.height = v.videoHeight * k;
-        const x = c.getContext('2d', { willReadFrequently: true });
-        x.drawImage(v, 0, 0, c.width, c.height);
-        const im = x.getImageData(0, 0, c.width, c.height), q = jsQR(im.data, im.width, im.height);
-        t = q ? q.data : '';
-      }
-    } catch (e) {}
-    if (t.startsWith('NIA-') && (t !== last || Date.now() - lastAt > 5000)) { last = t; lastAt = Date.now(); send({ action: 'scan', token: t }); }
+  function showApp() {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('who').textContent = 'داخل باسم: ' + USER;
   }
-  setTimeout(() => tick(id), 200);
-}
+  function showLogin(msg) {
+    localStorage.removeItem('tok'); localStorage.removeItem('user'); TOK = ''; USER = '';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login').style.display = 'block';
+    var m = document.getElementById('lmsg');
+    if (msg) { m.textContent = msg; m.style.display = 'block'; } else m.style.display = 'none';
+  }
+  function show(r) {
+    if (r.auth === false) return showLogin(r.msg);
+    out.style.display = 'block'; out.textContent = r.msg;
+    out.className = !r.ok ? 'bad' : (r.dup ? 'dup' : 'ok');
+    if (navigator.vibrate) navigator.vibrate(r.ok && !r.dup ? 120 : [80, 60, 80]);
+  }
+  function fail(e) { show({ ok: false, msg: '❌ ' + ((e && e.message) ? e.message : String(e)) }); }
+  if (TOK) showApp();
 
-let timer;
-$('q').oninput = () => {
-  clearTimeout(timer);
-  timer = setTimeout(async () => {
-    const q = $('q').value.trim(), box = $('list');
-    box.innerHTML = '';
-    if (!q) return;
-    try {
-      const d = await call({ action: 'search', q });
-      if (!d.ok) { box.textContent = d.msg; return; }
-      if (!d.list.length) { box.textContent = 'مفيش نتايج'; return; }
-      d.list.forEach(p => {
-        const b = document.createElement('button');
-        b.textContent = p.code + ' - ' + p.name;
-        b.onclick = () => { box.innerHTML = ''; $('q').value = ''; send({ action: 'manual', code: p.code }); };
-        box.appendChild(b);
+  document.getElementById('in').onclick = function () {
+    call({ action: 'login', name: document.getElementById('u').value, password: document.getElementById('pw').value })
+      .then(function (r) {
+        if (!r.ok) return showLogin(r.msg);
+        TOK = r.token; USER = r.user;
+        localStorage.setItem('tok', TOK); localStorage.setItem('user', USER);
+        document.getElementById('pw').value = '';
+        showApp();
+      }).catch(function (e) { showLogin('حصل خطأ في الاتصال: ' + e.message); });
+  };
+  document.getElementById('logout').onclick = function () { showLogin(''); };
+
+  function sendScan(text) {
+    call({ action: 'scan', tok: TOK, token: text }).then(show).catch(fail);
+  }
+  document.getElementById('start').onclick = function () {
+    var btn = this;
+    cam = cam || new Html5Qrcode('reader');
+    cam.start({ facingMode: 'environment' }, { fps: 10, qrbox: 240 }, function (text) {
+      var now = Date.now();
+      if (text === lastTok && now - lastAt < 4000) return;
+      lastTok = text; lastAt = now;
+      sendScan(text);
+    }).then(function () { btn.style.display = 'none'; })
+      .catch(function (e) {
+        show({ ok: false, msg: '❌ الكاميرا ما اشتغلتش: ' + ((e && e.message) ? e.message : String(e)) + ' — اسمح للكاميرا من إعدادات المتصفح' });
       });
-    } catch (e) { box.textContent = 'تعذّر الاتصال: ' + e.message; }
-  }, 350);
-};
-</script>
-</body>
-</html>
+  };
+  document.getElementById('shot').onclick = function () { document.getElementById('file').click(); };
+  document.getElementById('file').onchange = function () {
+    var f = this.files[0], input = this;
+    if (!f) return;
+    cam = cam || new Html5Qrcode('reader');
+    cam.scanFile(f, false).then(sendScan)
+      .catch(function () { show({ ok: false, msg: '❌ ما قدرتش أقرا الـ QR من الصورة' }); });
+    input.value = '';
+  };
+
+  document.getElementById('go').onclick = function () {
+    var c = document.getElementById('code').value; if (!c) return;
+    call({ action: 'code', tok: TOK, code: c }).then(show).catch(fail);
+  };
+  var t;
+  document.getElementById('q').oninput = function () {
+    clearTimeout(t); var v = this.value;
+    t = setTimeout(function () {
+      call({ action: 'search', tok: TOK, q: v }).then(function (list) {
+        var box = document.getElementById('results'); box.innerHTML = '';
+        if (!Array.isArray(list)) return;
+        list.forEach(function (p) {
+          var d = document.createElement('div'); d.className = 'p';
+          d.textContent = p.name + ' (كود ' + p.code + ')' + (p.tag && p.tag.indexOf('ID') === 0 ? ' - ' + p.tag : '');
+          d.onclick = function () {
+            call({ action: 'code', tok: TOK, code: p.code }).then(show).catch(fail);
+            box.innerHTML = '';
+          };
+          box.appendChild(d);
+        });
+      }).catch(fail);
+    }, 350);
+  };
+</script></body></html>
