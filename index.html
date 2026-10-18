@@ -1,13 +1,10 @@
-<!https://script.google.com/macros/s/AKfycbyxbwv4gNMDrgtaN4Vu2e7AQkPhNnb9X8TYRzN-cv2z9KO2LtcWoibaumNrUd9OIfhM/exec>
-<html dir="rtl" lang="ar"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>تسجيل الحضور</title>
+<!DOCTYPE html>
+<html dir="rtl" lang="ar"><head><base target="_top"><meta charset="utf-8">
 <style>
   body{font-family:Arial,sans-serif;margin:0;padding:14px;background:#f4f6f8}
   h2{margin:0 0 10px}
   input,button{font-size:16px;padding:10px;margin:4px 0;border-radius:8px;border:1px solid #bbb;box-sizing:border-box}
   input{width:100%} button{background:#1f4e78;color:#fff;border:0;width:100%}
-  button.sec{background:#fff;color:#1f4e78;border:1px solid #1f4e78}
   #reader{width:100%;max-width:420px;margin:8px auto}
   #out,#lmsg{margin:10px 0;padding:14px;border-radius:10px;font-size:18px;display:none;text-align:center}
   .ok{background:#c6efce;color:#1e5a1e}.dup{background:#ffeb9c;color:#7f6000}.bad{background:#ffc7ce;color:#9c0006}
@@ -25,39 +22,46 @@
   <h2>تسجيل الحضور</h2>
   <div id="who"></div>
   <button id="start">تشغيل الكاميرا</button>
+  <button id="shot">📷 صوّر الـ QR بكاميرا الموبايل</button>
+  <input id="file" type="file" accept="image/*" capture="environment" style="display:none">
   <div id="reader"></div>
   <div id="out"></div>
-  <button id="shot" class="sec">📷 أو صوّر الـ QR</button>
-  <input id="file" type="file" accept="image/*" capture="environment" style="display:none">
   <hr>
   <input id="code" type="number" placeholder="أو اكتب الكود">
   <button id="go">تسجيل بالكود</button>
   <input id="q" placeholder="أو ابحث بالاسم أو الرقم">
   <div id="results"></div>
-  <button id="logout" class="sec">تسجيل خروج</button>
 </div>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-  var API = https://script.google.com/macros/s/AKfycbyxbwv4gNMDrgtaN4Vu2e7AQkPhNnb9X8TYRzN-cv2z9KO2LtcWoibaumNrUd9OIfhM/exec;
-
-  var TOK = localStorage.getItem('tok') || '', USER = localStorage.getItem('user') || '';
+  var TOK = sessionStorage.getItem('tok') || '', USER = sessionStorage.getItem('user') || '';
   var out = document.getElementById('out'), lastTok = '', lastAt = 0, cam = null;
 
-  function call(payload) {
-    return fetch(API, { method: 'POST', body: JSON.stringify(payload) }).then(function (r) { return r.json(); });
-  }
   function showApp() {
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('who').textContent = 'داخل باسم: ' + USER;
   }
   function showLogin(msg) {
-    localStorage.removeItem('tok'); localStorage.removeItem('user'); TOK = ''; USER = '';
+    sessionStorage.clear(); TOK = ''; USER = '';
     document.getElementById('app').style.display = 'none';
     document.getElementById('login').style.display = 'block';
     var m = document.getElementById('lmsg');
     if (msg) { m.textContent = msg; m.style.display = 'block'; } else m.style.display = 'none';
   }
+  if (TOK) showApp();
+
+  document.getElementById('in').onclick = function () {
+    google.script.run.withSuccessHandler(function (r) {
+      if (!r.ok) return showLogin(r.msg);
+      TOK = r.token; USER = r.user;
+      sessionStorage.setItem('tok', TOK); sessionStorage.setItem('user', USER);
+      document.getElementById('pw').value = '';
+      showApp();
+    }).withFailureHandler(function (e) { showLogin('حصل خطأ: ' + e.message); })
+      .login(document.getElementById('u').value, document.getElementById('pw').value);
+  };
+
   function show(r) {
     if (r.auth === false) return showLogin(r.msg);
     out.style.display = 'block'; out.textContent = r.msg;
@@ -65,23 +69,7 @@
     if (navigator.vibrate) navigator.vibrate(r.ok && !r.dup ? 120 : [80, 60, 80]);
   }
   function fail(e) { show({ ok: false, msg: '❌ ' + ((e && e.message) ? e.message : String(e)) }); }
-  if (TOK) showApp();
 
-  document.getElementById('in').onclick = function () {
-    call({ action: 'login', name: document.getElementById('u').value, password: document.getElementById('pw').value })
-      .then(function (r) {
-        if (!r.ok) return showLogin(r.msg);
-        TOK = r.token; USER = r.user;
-        localStorage.setItem('tok', TOK); localStorage.setItem('user', USER);
-        document.getElementById('pw').value = '';
-        showApp();
-      }).catch(function (e) { showLogin('حصل خطأ في الاتصال: ' + e.message); });
-  };
-  document.getElementById('logout').onclick = function () { showLogin(''); };
-
-  function sendScan(text) {
-    call({ action: 'scan', tok: TOK, token: text }).then(show).catch(fail);
-  }
   document.getElementById('start').onclick = function () {
     var btn = this;
     cam = cam || new Html5Qrcode('reader');
@@ -89,43 +77,45 @@
       var now = Date.now();
       if (text === lastTok && now - lastAt < 4000) return;
       lastTok = text; lastAt = now;
-      sendScan(text);
+      google.script.run.withSuccessHandler(show).withFailureHandler(fail).scanToken(TOK, text);
     }).then(function () { btn.style.display = 'none'; })
       .catch(function (e) {
-        show({ ok: false, msg: '❌ الكاميرا ما اشتغلتش: ' + ((e && e.message) ? e.message : String(e)) + ' — اسمح للكاميرا من إعدادات المتصفح' });
+        show({ ok: false, msg: '❌ الكاميرا ما اشتغلتش: ' + ((e && e.message) ? e.message : String(e)) + ' — جرّب زرار "صوّر الـ QR"، أو افتح الرابط من Chrome مش من واتساب' });
       });
   };
+
   document.getElementById('shot').onclick = function () { document.getElementById('file').click(); };
   document.getElementById('file').onchange = function () {
     var f = this.files[0], input = this;
     if (!f) return;
     cam = cam || new Html5Qrcode('reader');
-    cam.scanFile(f, false).then(sendScan)
-      .catch(function () { show({ ok: false, msg: '❌ ما قدرتش أقرا الـ QR من الصورة' }); });
+    cam.scanFile(f, false).then(function (text) {
+      google.script.run.withSuccessHandler(show).withFailureHandler(fail).scanToken(TOK, text);
+    }).catch(function () { show({ ok: false, msg: '❌ ما قدرتش أقرا الـ QR من الصورة، قرّب وجرّب تاني' }); });
     input.value = '';
   };
 
   document.getElementById('go').onclick = function () {
     var c = document.getElementById('code').value; if (!c) return;
-    call({ action: 'code', tok: TOK, code: c }).then(show).catch(fail);
+    google.script.run.withSuccessHandler(show).withFailureHandler(fail).manualCode(TOK, c);
   };
+
   var t;
   document.getElementById('q').oninput = function () {
     clearTimeout(t); var v = this.value;
     t = setTimeout(function () {
-      call({ action: 'search', tok: TOK, q: v }).then(function (list) {
+      google.script.run.withSuccessHandler(function (list) {
         var box = document.getElementById('results'); box.innerHTML = '';
-        if (!Array.isArray(list)) return;
         list.forEach(function (p) {
           var d = document.createElement('div'); d.className = 'p';
           d.textContent = p.name + ' (كود ' + p.code + ')' + (p.tag && p.tag.indexOf('ID') === 0 ? ' - ' + p.tag : '');
           d.onclick = function () {
-            call({ action: 'code', tok: TOK, code: p.code }).then(show).catch(fail);
+            google.script.run.withSuccessHandler(show).withFailureHandler(fail).manualCode(TOK, p.code);
             box.innerHTML = '';
           };
           box.appendChild(d);
         });
-      }).catch(fail);
+      }).searchPeople(TOK, v);
     }, 350);
   };
 </script></body></html>
