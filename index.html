@@ -31,11 +31,9 @@
 <div id="app" style="display:none">
   <h2>تسجيل الحضور</h2>
   <div id="who"></div>
-  <button id="start">تشغيل الكاميرا</button>
+  <button id="start">تسجيل</button>
   <div id="reader"></div>
   <div id="out"></div>
-  <button id="shot" class="sec">📷 أو صوّر الـ QR</button>
-  <input id="file" type="file" accept="image/*" capture="environment" style="display:none">
   <hr>
   <input id="code" type="number" placeholder="أو اكتب الكود">
   <button id="go">تسجيل بالكود</button>
@@ -48,7 +46,7 @@
   var API = 'https://script.google.com/macros/s/AKfycbyxbwv4gNMDrgtaN4Vu2e7AQkPhNnb9X8TYRzN-cv2z9KO2LtcWoibaumNrUd9OIfhM/exec';
 
   var TOK = localStorage.getItem('tok') || '', USER = localStorage.getItem('user') || '';
-  var out = document.getElementById('out'), lastTok = '', lastAt = 0, cam = null;
+  var out = document.getElementById('out'), cam = null;
 
   function call(payload) {
     var ctrl = new AbortController();
@@ -118,27 +116,23 @@
   function sendScan(text) {
     call({ action: 'scan', tok: TOK, token: text }).then(show).catch(fail);
   }
+
+  // زرار تسجيل: يفتح الكاميرا، يقرأ QR واحد، يبعته، يقفل الكاميرا، ومايفتحش تاني غير بالضغط
   document.getElementById('start').onclick = function () {
-    var btn = this;
+    var btn = this, done = false;
     cam = cam || new Html5Qrcode('reader');
+    btn.style.display = 'none';
+    out.style.display = 'none';
     cam.start({ facingMode: 'environment' }, { fps: 10, qrbox: 240 }, function (text) {
-      var now = Date.now();
-      if (text === lastTok && now - lastAt < 4000) return;
-      lastTok = text; lastAt = now;
+      if (done) return;
+      done = true;
+      cam.stop().then(function () { cam.clear(); btn.style.display = 'block'; })
+        .catch(function () { btn.style.display = 'block'; });
       sendScan(text);
-    }).then(function () { btn.style.display = 'none'; })
-      .catch(function (e) {
-        show({ ok: false, msg: '❌ الكاميرا ما اشتغلتش: ' + ((e && e.message) ? e.message : String(e)) + ' — اسمح للكاميرا من إعدادات المتصفح' });
-      });
-  };
-  document.getElementById('shot').onclick = function () { document.getElementById('file').click(); };
-  document.getElementById('file').onchange = function () {
-    var f = this.files[0], input = this;
-    if (!f) return;
-    cam = cam || new Html5Qrcode('reader');
-    cam.scanFile(f, false).then(sendScan)
-      .catch(function () { show({ ok: false, msg: '❌ ما قدرتش أقرا الـ QR من الصورة' }); });
-    input.value = '';
+    }).catch(function (e) {
+      btn.style.display = 'block';
+      show({ ok: false, msg: '❌ الكاميرا ما اشتغلتش: ' + ((e && e.message) ? e.message : String(e)) + ' — اسمح للكاميرا من إعدادات المتصفح' });
+    });
   };
 
   document.getElementById('go').onclick = function () {
